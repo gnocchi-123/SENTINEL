@@ -131,6 +131,11 @@ def main() -> None:
         default="params.yaml",
         help="파라미터 파일 경로 (기본: params.yaml)",
     )
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="가격 캐시를 무시하고 yfinance에서 재다운로드",
+    )
     args = parser.parse_args()
 
     print(DISCLAIMER)
