@@ -1,0 +1,45 @@
+# === 데이터 ===
+start_date: "1999-01-01"
+tickers:
+  market: "SPY"
+  sectors: [XLK, XLV, XLF, XLE, XLI, XLY, XLP, XLU, XLB, XLRE, XLC]
+  semiconductor: "SOXX"        # SMH 토글
+  risk_free: "BIL"
+  defense: "AGG"               # IEF / BIL 토글
+  vix: "^VIX"
+price_cache: "price_data.csv"
+index_splicing: false          # 향후 과제
+
+# === 국면 필터 (모듈 1) ===
+ma_period_days: 200
+absolute_momentum_lookback_months: 12   # SPY 12개월 수익률 vs BIL
+
+# === 섹터 모멘텀 (모듈 2) ===
+momentum_lookbacks_months: [3, 6, 12]
+momentum_weights: [1, 1, 1]              # 단순평균
+top_n_sectors: 3                         # 2/3/4 스윕 대상
+
+# === 포지션 크기 (모듈 3) ===
+sizing: "equal"                          # equal / inverse_vol
+inverse_vol_lookback_months: 12
+
+# === 체결/비용 (모듈 4) ===
+execution: "current_month_first_trading_day"  # 직전 월말 신호 → 당월 첫 거래일 체결
+transaction_cost_bps: 5
+rebalance_on_weight_drift: false
+
+# === 휩쏘 완화 (기본 OFF, 토글 비교) ===
+buffer_pct: 0.0                          # 200일선 ±버퍼 (예: 0.04)
+confirmation_months: 1                   # 신호 확정 연속 개월 (예: 2)
+partial_exit_fraction: 1.0               # 청산 비율 (예: 0.5 = 50%씩)
+
+# === 워치독 (월중 방어 전용, 기본 OFF) ===
+watchdog_enabled: false
+watchdog_drawdown_threshold: -0.10
+watchdog_high_lookback_days: 252
+watchdog_vix_threshold: 28
+watchdog_derisk_fraction: 0.50
+watchdog_refire: false
+watchdog_reentry: "next_regular"
+# 향후 검토 가능 가정(현재 미구현, 변경 시 합의 필요):
+#  - 단계별 다회 청산 / derisk_fraction 30~70 / refire 허용 / 국면필터 연계 잔여청산
