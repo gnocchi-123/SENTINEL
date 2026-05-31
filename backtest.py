@@ -151,8 +151,17 @@ def main() -> None:
 
     print_assumptions(params)
 
-    print("\n[현재 상태] 단계 1 완료 — params 로드 및 가정 출력만 구현됨.")
-    print("  데이터 수집, 신호 산출, 백테스트 실행은 이후 단계에서 구현 예정.\n")
+    from sentinel.data import load_prices, resample_to_month_end
+    from sentinel.engine import run_backtest, print_backtest_summary
+
+    print("\n[데이터 로드 중...]")
+    daily = load_prices(params, refresh=args.refresh)
+    monthly = resample_to_month_end(daily)
+
+    print("[백테스트 실행 중...]")
+    equity, log_df = run_backtest(daily, monthly, params)
+
+    print_backtest_summary(equity, log_df, params)
 
 
 if __name__ == "__main__":
