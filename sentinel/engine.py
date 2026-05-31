@@ -342,7 +342,8 @@ def run_backtest(
             # ── 리밸런싱 실행 ─────────────────────────────────────────
             prev_w = _weight_vector(shares, exec_prices, pv_before)
 
-            if partial_exit < 1.0 and prev_target_key is not None:
+            # shares가 비어 있으면(현금) partial exit 대상 없음 → full rebalance
+            if partial_exit < 1.0 and prev_target_key is not None and shares:
                 new_shares_raw = _execute_partial_exit(
                     shares, new_target, exec_prices, partial_exit
                 )

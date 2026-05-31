@@ -1,9 +1,7 @@
 """SENTINEL 백테스트 메인 엔트리포인트.
 
 사용법:
-    python backtest.py [--params params.yaml]
-
-현재 단계: params.yaml 로드 및 적용된 가정 출력.
+    python backtest.py [--params params.yaml] [--sweep] [--chart] [--no-report]
 """
 
 from __future__ import annotations
@@ -54,6 +52,43 @@ def load_params(path: str | Path) -> dict:
         raise FileNotFoundError(f"params 파일을 찾을 수 없습니다: {path}")
     with path.open(encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+def print_honesty_warnings(params: dict) -> None:
+    """과최적화 경고와 코드가 임의로 정한 가정을 명시 출력한다."""
+    print("=" * 70)
+    print("  적용된 가정 — 코드가 임의로 정한 설계 선택 (정직성 공시)")
+    print("=" * 70)
+
+    print("\n  [체결 타이밍]")
+    print("  - 신호 기준일: 점검 당월 첫 거래일의 '직전 월말' 종가까지 데이터 사용")
+    print("  - 체결 가격:   당월 첫 거래일 종가 (시가·VWAP 아님 — 실제보다 유리할 수 있음)")
+    print("  - 체결 지연:   없음 (신호 = 당일 즉시 체결 가정)")
+
+    cost = params.get("transaction_cost_bps", 5)
+    print(f"\n  [비용 가정]")
+    print(f"  - 편도 거래비용: {cost}bp (시장충격·슬리피지·세금 미포함 → 과소평가 가능)")
+    print(f"  - 세금·수수료:   0 (모의거래 기준)")
+
+    print(f"\n  [데이터 처리]")
+    print(f"  - 수정주가 사용: 배당 재투자 포함 (yfinance Adj Close — 세전 기준)")
+    print(f"  - 결측(상장 전 NaN): 순위 풀에서 자동 제외, 채우거나 스플라이싱하지 않음")
+    print(f"  - BIL 미상장(~2007-05): 절대모멘텀 조건 B 계산 불가 → 보수적 방어 처리")
+    print(f"  - AGG 미상장(~2003-09): 방어자산 매수 불가 → 현금 보유 (전략 의도 아님)")
+    print(f"  - 지수 스플라이싱:     미적용 (활성 구간 단축 — 결과 낙관 편향 아님)")
+
+    print(f"\n  [리밸런싱]")
+    print(f"  - 드리프트 리밸런싱: 미실시 (같은 티커 집합이면 비중 drift 무시)")
+    print(f"  - 부분 청산:         기본 100% (partial_exit_fraction=1.0)")
+    print(f"  - 무신호=무행동:     전월 대비 목표 티커 집합이 동일하면 거래 없음")
+
+    print(f"\n  [워치독 특이사항]")
+    wd = params.get("watchdog_enabled", False)
+    print(f"  - 현재 상태: {'ON' if wd else 'OFF'}")
+    print(f"  - 2008 GFC 미발동: 전략이 이미 100% 방어(AGG) → 주식 없어 디리스크 대상 없음")
+    print(f"  - 2020 V자: 바닥 부근 50% 매도 후 반등 → 휩쏘 실제 발생 (양날의 검)")
+
+    print("\n" + "=" * 70)
 
 
 def print_assumptions(params: dict) -> None:
@@ -152,6 +187,11 @@ def main() -> None:
         action="store_true",
         help="성과 리포트 출력 생략 (빠른 실행용)",
     )
+    parser.add_argument(
+        "--sweep",
+        action="store_true",
+        help="파라미터 스윕 + 워치독 유형별 비교를 실행한다 (약 2~3분 소요)",
+    )
     args = parser.parse_args()
 
     print(DISCLAIMER)
@@ -165,6 +205,7 @@ def main() -> None:
         print(f"[오류] params.yaml 파싱 실패: {e}", file=sys.stderr)
         sys.exit(1)
 
+    print_honesty_warnings(params)
     print_assumptions(params)
 
     from sentinel.data import load_prices, resample_to_month_end
@@ -210,6 +251,17 @@ def main() -> None:
         benchmark = spy_sub / spy_sub.iloc[0]
         plot_equity_and_drawdown(equity_filled, benchmark,
                                  output_path=args.chart_output, params=params)
+
+    if args.sweep:
+        print("\n[견고성 스윕 시작 — 약 2~3분 소요]\n")
+        from sentinel.robustness import (
+            run_sweep, print_sweep_table, compare_watchdog_by_bear_type,
+        )
+        results = run_sweep(daily, monthly, params, verbose=True)
+        print_sweep_table(results)
+
+        print("\n[워치독 유형별 비교 — 느린 하락 vs V자]\n")
+        compare_watchdog_by_bear_type(daily, monthly, params, verbose=True)
 
 
 if __name__ == "__main__":
