@@ -1,0 +1,22 @@
+section,key,label,sentinel,spy_bh
+summary,mdd,MDD,-0.27419830411075635,-0.5518943206484286
+summary,mdd_peak,MDD 고점,2022-01-03,
+summary,mdd_trough,MDD 저점,2023-10-27,
+summary,mdd_recovery,MDD 회복일,2024-07-10,
+summary,mdd_days,고점→저점 일수,662,517
+summary,sharpe,Sharpe,0.5421137423676218,0.5267189047638831
+summary,sortino,Sortino,0.3946449748537612,0.5029449736508216
+summary,calmar,Calmar,0.21795123853778253,0.15631443963900185
+summary,annual_vol,연변동성,0.12073497987718605,0.19259369331136522
+summary,cagr,CAGR,0.05976185998589889,0.08626905147210673
+summary,total_return,누적수익,3.883328014409055,8.59061256266937
+summary,n_trades,총 매매 횟수,125,
+summary,avg_turnover,평균 회전율,0.536659504,
+summary,defense_ratio,방어 모드 비율,0.5152439024390244,
+bear_market,닷컴 버블,닷컴 버블 (느린하락) 2000-03-24~2002-10-09,0.0,-0.47515851275288323
+bear_market,GFC,GFC (느린하락) 2007-10-09~2009-03-09,0.0,-0.5518943206484286
+bear_market,코로나,코로나 (V자) 2020-02-19~2020-03-23,-0.11353460982644836,-0.33717258279330087
+bear_market,2022 금리,2022 금리 (느린하락) 2022-01-03~2022-10-12,-0.22939099478129021,-0.24496399572091743
+params,watchdog_enabled,워치독 활성화,False,
+params,top_n_sectors,보유 섹터 수,3,
+params,transaction_cost_bps,거래비용 (bp),5,

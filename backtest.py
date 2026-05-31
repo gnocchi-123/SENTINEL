@@ -136,6 +136,22 @@ def main() -> None:
         action="store_true",
         help="가격 캐시를 무시하고 yfinance에서 재다운로드",
     )
+    parser.add_argument(
+        "--chart",
+        action="store_true",
+        help="자산곡선·드로다운 차트를 생성한다",
+    )
+    parser.add_argument(
+        "--chart-output",
+        default=None,
+        metavar="PATH",
+        help="차트 저장 경로 (지정 안 하면 화면 표시)",
+    )
+    parser.add_argument(
+        "--no-report",
+        action="store_true",
+        help="성과 리포트 출력 생략 (빠른 실행용)",
+    )
     args = parser.parse_args()
 
     print(DISCLAIMER)
@@ -153,6 +169,10 @@ def main() -> None:
 
     from sentinel.data import load_prices, resample_to_month_end
     from sentinel.engine import run_backtest, print_backtest_summary
+    from sentinel.metrics import (
+        prepare_series, compute_summary, compute_drawdown_periods,
+    )
+    from sentinel.report import print_report, save_validation_csv, plot_equity_and_drawdown
 
     print("\n[데이터 로드 중...]")
     daily = load_prices(params, refresh=args.refresh)
@@ -162,6 +182,34 @@ def main() -> None:
     equity, log_df = run_backtest(daily, monthly, params)
 
     print_backtest_summary(equity, log_df, params)
+
+    if not args.no_report:
+        print("\n[성과 지표 계산 중...]")
+
+        # equity_curve를 전 거래일로 채움 (일별 수익률 계산용)
+        equity_filled = prepare_series(equity, daily.index)
+
+        # SPY 매수보유 벤치마크 (동일 시작일 기준 정규화)
+        spy_raw = daily["SPY"].dropna()
+        spy_start = equity_filled.index[0]
+        spy_sub = spy_raw[spy_raw.index >= spy_start]
+        benchmark = spy_sub / spy_sub.iloc[0]
+
+        summary = compute_summary(equity_filled, benchmark, params, log_df)
+        bear_df = compute_drawdown_periods(equity_filled, benchmark)
+
+        print_report(summary, bear_df, params)
+        save_validation_csv(summary, bear_df, "validation_results.csv", params)
+
+    if args.chart:
+        print("\n[차트 생성 중...]")
+        equity_filled = prepare_series(equity, daily.index)
+        spy_raw = daily["SPY"].dropna()
+        spy_start = equity_filled.index[0]
+        spy_sub = spy_raw[spy_raw.index >= spy_start]
+        benchmark = spy_sub / spy_sub.iloc[0]
+        plot_equity_and_drawdown(equity_filled, benchmark,
+                                 output_path=args.chart_output, params=params)
 
 
 if __name__ == "__main__":
